@@ -8,6 +8,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<modules>
 		<module>springnoboot-security-auth</module>
+		<module>springnoboot-security-oauth2</module>
 	</modules>
 	<packaging>pom</packaging>
 

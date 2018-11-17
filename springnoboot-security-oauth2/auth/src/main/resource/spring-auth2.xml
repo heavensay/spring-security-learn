@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans
+        xmlns="http://www.springframework.org/schema/security"
+        xmlns:beans="http://www.springframework.org/schema/beans"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:aop="http://www.springframework.org/schema/aop"
+        xmlns:oauth2="http://www.springframework.org/schema/security/oauth2"
+        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                    http://www.springframework.org/schema/security
+                    http://www.springframework.org/schema/security/spring-security.xsd
+                    http://www.springframework.org/schema/aop
+                    http://www.springframework.org/schema/aop/spring-aop.xsd
+                    http://www.springframework.org/schema/security/oauth2
+                    http://www.springframework.org/schema/security/spring-security-oauth2.xsd">
+
+    <!-- 网站B来申请Token时候的认证和权限设置:
+    为OAuth2AuthenticationProcessingFilter提供固定的AuthenticationManager即OAuth2AuthenticationManager，
+    它并没有将OAuth2AuthenticationManager添加到spring的容器中，不然可能会影响spring security的普通认证流程（非oauth2请求），
+    只有被OAuth2AuthenticationProcessingFilter拦截到的oauth2相关请求才被特殊的身份认证器处理
+
+    authentication server配置
+    -->
+    <http pattern="/oauth/token" create-session="stateless"
+          authentication-manager-ref="clientAuthenticationManager"
+          entry-point-ref="oauth2AuthenticationEntryPoint">
+        <intercept-url pattern="/oauth/token" access="IS_AUTHENTICATED_FULLY" />
+        <anonymous enabled="false" />
+        <http-basic entry-point-ref="oauth2AuthenticationEntryPoint" />
+        <custom-filter ref="clientCredentialsTokenEndpointFilter"
+                       before="BASIC_AUTH_FILTER" />
+        <access-denied-handler ref="oauthAccessDeniedHandler" />
+    </http>
+
+    <!-- -->
+    <http auto-config="true">
+        <intercept-url pattern="/user/**" access="hasRole('ROLE_USER')"/>
+        <!-- http Basic认证 -->
+        <!--<http-basic></http-basic>-->
+    </http>
+
+
+    <authentication-manager>
+        <authentication-provider>
+            <user-service>
+                <user name="tom" password="123456" authorities="ROLE_USER"/>
+            </user-service>
+            <password-encoder ref="encoder"/>
+        </authentication-provider>
+    </authentication-manager>
+
+    <beans:bean id="encoder" class="org.springframework.security.crypto.password.NoOpPasswordEncoder"/>
+
+
+    <authentication-manager id="clientAuthenticationManager">
+        <authentication-provider user-service-ref="oauth2ClientDetailsUserService" />
+    </authentication-manager>
+
+    <beans:bean id="oauth2ClientDetailsUserService"
+                class="org.springframework.security.oauth2.provider.client.ClientDetailsUserDetailsService">
+        <beans:constructor-arg ref="clientDetailsService" />
+    </beans:bean>
+
+    <oauth2:client-details-service id="clientDetailsService">
+        <oauth2:client client-id="m1"
+                       authorized-grant-types="password,authorization_code,refresh_token,implicit"
+                       secret="s1"
+                       scope="read,write,trust"
+                       authorities="ROLE_CLIENT, ROLE_TRUSTED_CLIENT"
+                       resource-ids="pic-resource" />
+    </oauth2:client-details-service>
+
+
+
+    <beans:bean id="oauth2AuthenticationEntryPoint"
+                class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint" />
+
+    <beans:bean id="oauthAccessDeniedHandler"
+                class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler" />
+
+
+    <!-- 也是传统的配置方法了，多了个oauth2里面特有的scope投票机制 -->
+    <beans:bean id="oauth2AccessDecisionManager"
+                class="org.springframework.security.access.vote.UnanimousBased">
+        <beans:constructor-arg>
+            <beans:list>
+                <beans:bean
+                        class="org.springframework.security.oauth2.provider.vote.ScopeVoter" />
+                <beans:bean class="org.springframework.security.access.vote.RoleVoter" />
+                <beans:bean
+                        class="org.springframework.security.access.vote.AuthenticatedVoter" />
+            </beans:list>
+        </beans:constructor-arg>
+    </beans:bean>
+
+
+    <oauth2:authorization-server
+            client-details-service-ref="clientDetailsService" token-services-ref="tokenServices"
+            user-approval-handler-ref="oauthUserApprovalHandler"
+            user-approval-page="oauth_approval" error-page="oauth_error">
+        <oauth2:authorization-code />
+        <oauth2:implicit />
+        <oauth2:refresh-token />
+        <oauth2:client-credentials />
+        <oauth2:password />
+    </oauth2:authorization-server>
+
+    <beans:bean id="tokenServices"
+                class="org.springframework.security.oauth2.provider.token.DefaultTokenServices">
+        <beans:property name="tokenStore" ref="tokenStore" />
+        <beans:property name="supportRefreshToken" value="true" />
+        <beans:property name="clientDetailsService" ref="clientDetailsService" />
+    </beans:bean>
+    <beans:bean id="tokenStore"
+                class="org.springframework.security.oauth2.provider.token.store.InMemoryTokenStore">
+    </beans:bean>
+
+    <beans:bean id="oauthUserApprovalHandler"
+                class="org.springframework.security.oauth2.provider.approval.DefaultUserApprovalHandler"/>
+
+
+    <beans:bean id="clientCredentialsTokenEndpointFilter"
+                class="org.springframework.security.oauth2.provider.client.ClientCredentialsTokenEndpointFilter">
+        <beans:property name="authenticationManager" ref="clientAuthenticationManager" />
+    </beans:bean>
+
+
+</beans:beans>

@@ -4,6 +4,7 @@
         xmlns:beans="http://www.springframework.org/schema/beans"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns:aop="http://www.springframework.org/schema/aop"
+        xmlns:oauth2="http://www.springframework.org/schema/security/oauth2"
         xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
                     http://www.springframework.org/schema/security
                     http://www.springframework.org/schema/security/spring-security.xsd
@@ -17,16 +18,13 @@
         <http-basic></http-basic>
     </http>
 
-    <authentication-manager>
-        <authentication-provider>
-            <user-service>
-                <user name="tom" password="123456" authorities="ROLE_USER"/>
-            </user-service>
-            <password-encoder ref="encoder"/>
-        </authentication-provider>
-    </authentication-manager>
 
-    <!--<beans:bean id="encoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"/>-->
-    <beans:bean id="encoder" class="org.springframework.security.crypto.password.NoOpPasswordEncoder"/>
+    <oauth2:resource-server id="resource-a" token-services-ref="tokenServices">
+    </oauth2:resource-server>
+
+    <beans:bean id="tokenServices"
+                class="org.springframework.security.oauth2.provider.token.RemoteTokenServices">
+        <beans:property name="checkTokenEndpointUrl" value="http://127.0.0.1:9091/auth/oauth/check_token"></beans:property>
+    </beans:bean>
 
 </beans:beans>

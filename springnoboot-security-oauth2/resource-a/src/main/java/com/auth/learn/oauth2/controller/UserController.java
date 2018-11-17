@@ -1,4 +1,4 @@
-package com.auth.learn.snbsa.controller;
+package com.auth.learn.oauth2.controller;
 
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.access.prepost.PreAuthorize;

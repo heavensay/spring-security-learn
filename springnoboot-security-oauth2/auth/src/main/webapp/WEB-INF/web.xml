@@ -22,7 +22,7 @@
     <context-param>
         <param-name>contextConfigLocation</param-name>
         <param-value>
-            classpath*:/spring-security.xml
+            classpath*:/spring-oauth2-auth.xml
         </param-value>
     </context-param>
     <context-param>
